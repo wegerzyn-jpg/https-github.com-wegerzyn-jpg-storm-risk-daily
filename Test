@@ -1,0 +1,107 @@
+import pygame
+import random
+import sys
+
+# 1. Initialize Pygame
+pygame.init()
+
+# 2. Screen Setup
+WIDTH = 600
+HEIGHT = 500
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Banana Dodger")
+
+# Colors (RGB format)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+BLUE = (50, 150, 255)   # Player
+YELLOW = (255, 255, 0)  # Banana
+RED = (255, 50, 50)     # Game Over text
+
+# 3. Game Variables
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("monospace", 35)
+
+# Player setup
+player_size = 40
+player_x = WIDTH // 2
+player_y = HEIGHT - player_size - 10
+player_speed = 7
+
+# Banana setup
+banana_size = 30
+bananas = []      # List to hold the [x, y] coordinates of each banana
+banana_speed = 5
+spawn_timer = 0
+spawn_rate = 30   # Lower is faster (spawns a banana every X frames)
+
+score = 0
+game_over = False
+
+# 4. The Main Game Loop
+while True:
+    # --- EVENT HANDLING ---
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    if not game_over:
+        # --- UPDATE STATE ---
+        # Movement
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < WIDTH - player_size:
+            player_x += player_speed
+
+        # Spawning Bananas
+        spawn_timer += 1
+        if spawn_timer >= spawn_rate:
+            banana_x = random.randint(0, WIDTH - banana_size)
+            bananas.append([banana_x, 0]) # Spawn at the top (y=0)
+            spawn_timer = 0
+            
+            # Slowly increase difficulty!
+            if spawn_rate > 10:
+                spawn_rate -= 0.5 
+
+        # Moving Bananas and Collision Detection
+        for b in bananas[:]: # Iterate over a copy of the list
+            b[1] += banana_speed # Increase Y coordinate (move down)
+            
+            # Simple bounding-box collision detection
+            if (b[1] + banana_size > player_y and b[1] < player_y + player_size):
+                if (b[0] + banana_size > player_x and b[0] < player_x + player_size):
+                    game_over = True
+            
+            # If the banana goes off the bottom of the screen
+            if b[1] > HEIGHT:
+                bananas.remove(b)
+                score += 1
+
+        # --- DRAWING ---
+        screen.fill(BLACK) # Clear the screen
+        
+        # Draw Player
+        pygame.draw.rect(screen, BLUE, (player_x, player_y, player_size, player_size))
+        
+        # Draw Bananas
+        for b in bananas:
+            pygame.draw.rect(screen, YELLOW, (b[0], b[1], banana_size, banana_size))
+            
+        # Draw Score
+        score_text = font.render(f"Score: {score}", True, WHITE)
+        screen.blit(score_text, (10, 10))
+
+    else:
+        # --- GAME OVER SCREEN ---
+        screen.fill(BLACK)
+        game_over_text = font.render("GAME OVER", True, RED)
+        final_score_text = font.render(f"Final Score: {score}", True, WHITE)
+        screen.blit(game_over_text, (WIDTH//2 - 95, HEIGHT//2 - 40))
+        screen.blit(final_score_text, (WIDTH//2 - 145, HEIGHT//2 + 10))
+
+    # Update the display and wait for the next frame
+    pygame.display.flip()
+    clock.tick(60) # Run at 60 Frames Per Second

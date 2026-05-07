@@ -2,414 +2,957 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Walk Down the Street — NPC Dog Walkers</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Storm Risk Daily</title>
   <style>
-    html, body { margin:0; height:100%; overflow:hidden; background:#000; }
-    #ui {
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      background:rgba(0,0,0,0.6); color:#fff; font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      text-align:center; z-index:10;
+    :root {
+      color-scheme: light;
+      --bg: #eef3f6;
+      --panel: #ffffff;
+      --panel-2: #f7fafb;
+      --text: #162029;
+      --muted: #5d6b76;
+      --line: #d9e2e8;
+      --primary: #1b6a8f;
+      --primary-dark: #12516f;
+      --danger: #a63737;
+      --ok: #1d6f52;
+      --shadow: 0 18px 45px rgba(21, 36, 48, 0.14);
     }
-    #ui .panel { max-width:720px; padding:18px 20px; }
-    #ui .title { font-size:20px; font-weight:800; margin-bottom:6px; }
-    #ui .row { margin-top:10px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-    #ui button { padding:10px 16px; border:0; border-radius:10px; font-weight:700; cursor:pointer; }
-    #ui .warn { margin-top:10px; font-size:13px; opacity:0.85; }
-    #hud {
-      position:fixed; left:12px; bottom:12px; color:#fff; font:12px/1.4 system-ui, sans-serif; opacity:0.85;
-      background:rgba(0,0,0,0.35); padding:8px 10px; border-radius:8px; z-index:1;
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(120deg, rgba(27, 106, 143, 0.14), transparent 38%),
+        linear-gradient(280deg, rgba(226, 171, 73, 0.13), transparent 42%),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1040px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0;
+    }
+
+    .app-shell {
+      display: block;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(217, 226, 232, 0.9);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .lookup {
+      padding: 28px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 5vw, 4.2rem);
+      line-height: 0.96;
+      letter-spacing: 0;
+      max-width: 760px;
+    }
+
+    .lede {
+      max-width: 670px;
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: minmax(150px, 220px) auto;
+      gap: 10px;
+      align-items: end;
+      max-width: 460px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #b9c8d0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 1.15rem;
+      letter-spacing: 0;
+      background: #fff;
+    }
+
+    input:focus {
+      outline: 3px solid rgba(27, 106, 143, 0.22);
+      border-color: var(--primary);
+    }
+
+    button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 16px;
+      background: var(--primary);
+      color: white;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.72;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 14px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .result {
+      display: none;
+      margin-top: 24px;
+      border-top: 1px solid var(--line);
+      padding-top: 20px;
+    }
+
+    .result.visible {
+      display: block;
+    }
+
+    .result-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .place {
+      margin: 0;
+      font-size: 1.45rem;
+      line-height: 1.15;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e7f3ef;
+      color: var(--ok);
+      font-weight: 800;
+      font-size: 0.86rem;
+    }
+
+    .technical-details {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .technical-details summary {
+      min-height: 46px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 900;
+      color: var(--primary-dark);
+      background: var(--panel-2);
+    }
+
+    .technical-details summary:focus {
+      outline: 3px solid rgba(27, 106, 143, 0.22);
+      outline-offset: -3px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .fact {
+      min-height: 88px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      padding: 12px;
+    }
+
+    .fact span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .fact strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1rem;
+      overflow-wrap: anywhere;
+    }
+
+    .alerts {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .alerts-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .alerts-header h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .alert-count {
+      font-weight: 900;
+      color: var(--primary-dark);
+    }
+
+    .alert-list {
+      display: grid;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .alert-item {
+      display: grid;
+      gap: 6px;
+      padding: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .alert-item:first-child {
+      border-top: 0;
+    }
+
+    .alert-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-weight: 900;
+    }
+
+    .severity {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      background: #edf2f4;
+      color: #31414c;
+    }
+
+    .severity.extreme,
+    .severity.severe {
+      background: #f8e3df;
+      color: #8f2a20;
+    }
+
+    .severity.moderate {
+      background: #fff1d6;
+      color: #805212;
+    }
+
+    .severity.minor {
+      background: #e7f3ef;
+      color: #1d6f52;
+    }
+
+    .alert-meta,
+    .alert-desc {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .alert-desc {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    .forecast {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .risk-card,
+    .forecast-card,
+    .outlook-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      padding: 14px;
+    }
+
+    .risk-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .risk-value {
+      margin: 4px 0 8px;
+      font-size: 1.65rem;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .risk-value.low {
+      color: var(--ok);
+    }
+
+    .risk-value.general {
+      color: var(--primary-dark);
+    }
+
+    .risk-value.elevated {
+      color: #805212;
+    }
+
+    .risk-value.high {
+      color: var(--danger);
+    }
+
+    .risk-detail,
+    .period-detail {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .forecast-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+    }
+
+    .outlook-card {
+      margin-top: 18px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .outlook-card h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .outlook-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .outlook-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #edf2f4;
+      color: #31414c;
+      font-weight: 900;
+    }
+
+    .outlook-label.tstm {
+      background: #e5f4e5;
+      color: #24622c;
+    }
+
+    .outlook-label.mrgl {
+      background: #e2f0d7;
+      color: #245b1b;
+    }
+
+    .outlook-label.slgt {
+      background: #fff1b8;
+      color: #705900;
+    }
+
+    .outlook-label.enh {
+      background: #fbd8b7;
+      color: #8a4300;
+    }
+
+    .outlook-label.mdt,
+    .outlook-label.high {
+      background: #f8d9e5;
+      color: #8a2148;
+    }
+
+    .outlook-detail {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .hazards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .hazard {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #edf2f4;
+      color: #31414c;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    a {
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    @media (max-width: 820px) {
+      main {
+        width: min(100% - 24px, 620px);
+        padding: 24px 0;
+      }
+
+      .forecast {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .lookup {
+        padding: 18px;
+      }
+
+      form,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
     }
   </style>
-
-  <!-- Import map so bare specifiers like "three" resolve in the browser -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
 </head>
 <body>
-  <div id="ui">
-    <div class="panel">
-      <div class="title">Walk Down the Street</div>
-      <div>Click <b>Play</b> (locks mouse) or <b>Start without mouse lock</b> (then click the scene to lock).</div>
-      <div>WASD = move • Shift = sprint • N = night • Esc = unlock</div>
-      <div class="row">
-        <button id="play" type="button">Play</button>
-        <button id="startNoLock" type="button">Start without mouse lock</button>
-      </div>
-      <div id="embedWarn" class="warn" style="display:none;"></div>
+  <main>
+    <div class="app-shell">
+      <section class="panel lookup" aria-labelledby="app-title">
+        <h1 id="app-title">Daily storm risk, grounded in official data.</h1>
+        <p class="lede">
+          Enter a U.S. ZIP code to check active alerts and near-term storm signals from official National Weather Service data.
+        </p>
+
+        <form id="zip-form">
+          <label for="zip">
+            ZIP code
+            <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" maxlength="5" placeholder="73102" required />
+          </label>
+          <button id="submit" type="submit">Check location</button>
+        </form>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+
+        <section id="result" class="result" aria-label="Resolved location">
+          <div class="result-header">
+            <h2 id="place" class="place"></h2>
+            <span class="badge">NWS point verified</span>
+          </div>
+
+          <section class="forecast" aria-labelledby="forecast-title">
+            <div class="risk-card">
+              <p class="risk-label">Forecast storm signal</p>
+              <div id="risk-value" class="risk-value low">Pending</div>
+              <p id="risk-detail" class="risk-detail"></p>
+              <div id="hazards" class="hazards"></div>
+            </div>
+            <div class="forecast-card">
+              <h3 id="forecast-title">Current NWS forecast period</h3>
+              <p id="period-detail" class="period-detail"></p>
+            </div>
+          </section>
+
+          <section class="outlook-card" aria-labelledby="outlook-title">
+            <h3 id="outlook-title">SPC Day 1 categorical outlook</h3>
+            <div class="outlook-main">
+              <span id="outlook-label" class="outlook-label">Pending</span>
+              <strong id="outlook-name"></strong>
+            </div>
+            <p id="outlook-detail" class="outlook-detail"></p>
+          </section>
+
+          <section class="alerts" aria-labelledby="alerts-title">
+            <div class="alerts-header">
+              <h3 id="alerts-title">Active alerts</h3>
+              <span id="alert-count" class="alert-count"></span>
+            </div>
+            <ul id="alert-list" class="alert-list"></ul>
+          </section>
+
+          <details class="technical-details">
+            <summary>Location and source details</summary>
+            <div class="grid">
+              <div class="fact">
+                <span>Coordinates</span>
+                <strong id="coords"></strong>
+              </div>
+              <div class="fact">
+                <span>NWS office</span>
+                <strong id="office"></strong>
+              </div>
+              <div class="fact">
+                <span>NWS gridpoint</span>
+                <strong id="grid"></strong>
+              </div>
+              <div class="fact">
+                <span>Forecast source</span>
+                <strong><a id="forecast-source" href="#" target="_blank" rel="noreferrer"></a></strong>
+              </div>
+              <div class="fact">
+                <span>Location source</span>
+                <strong><a href="https://api.zippopotam.us/" target="_blank" rel="noreferrer">Zippopotam.us</a></strong>
+              </div>
+              <div class="fact">
+                <span>Weather source</span>
+                <strong><a href="https://api.weather.gov" target="_blank" rel="noreferrer">api.weather.gov</a></strong>
+              </div>
+            </div>
+          </details>
+        </section>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <div id="hud">WASD = move • Shift = sprint • N = night • Esc = unlock</div>
+  <script>
+    const form = document.querySelector("#zip-form");
+    const zipInput = document.querySelector("#zip");
+    const submitButton = document.querySelector("#submit");
+    const statusEl = document.querySelector("#status");
+    const resultEl = document.querySelector("#result");
+    const placeEl = document.querySelector("#place");
+    const coordsEl = document.querySelector("#coords");
+    const officeEl = document.querySelector("#office");
+    const gridEl = document.querySelector("#grid");
+    const alertCountEl = document.querySelector("#alert-count");
+    const alertListEl = document.querySelector("#alert-list");
+    const riskValueEl = document.querySelector("#risk-value");
+    const riskDetailEl = document.querySelector("#risk-detail");
+    const hazardsEl = document.querySelector("#hazards");
+    const periodDetailEl = document.querySelector("#period-detail");
+    const forecastSourceEl = document.querySelector("#forecast-source");
+    const outlookLabelEl = document.querySelector("#outlook-label");
+    const outlookNameEl = document.querySelector("#outlook-name");
+    const outlookDetailEl = document.querySelector("#outlook-detail");
+    const cache = new Map();
+    const RISK_CACHE_MS = 60 * 1000;
 
-  <script type="module">
-    import * as THREE from "three";
-    import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-    import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-
-    // --- renderer / scene / camera ---
-    const renderer = new THREE.WebGLRenderer({ antialias:true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.body.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB);
-    scene.fog = new THREE.Fog(0x87CEEB, 60, 220);
-
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 1.7, 8);
-
-    const controls = new PointerLockControls(camera, renderer.domElement);
-    scene.add(controls.getObject());
-
-    // --- UI / pointer lock ---
-    const overlay = document.getElementById('ui');
-    const playBtn = document.getElementById('play');
-    const startNoLockBtn = document.getElementById('startNoLock');
-    const embedWarn = document.getElementById('embedWarn');
-
-    const embedded = (() => { try { return window.top !== window.self; } catch(_) { return true; } })();
-    if (embedded) { embedWarn.textContent = 'Running in an embedded preview/iframe. If Play doesn’t lock, use “Start without mouse lock,” then click the scene once to lock.'; embedWarn.style.display = ''; }
-
-    function showMsg(msg){
-      overlay.style.display = '';
-      const panel = overlay.querySelector('.panel');
-      panel.insertAdjacentHTML('beforeend', `<div class="warn">${msg}</div>`);
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("error", isError);
     }
-    function onPlayClick(e){ e.preventDefault(); e.stopPropagation(); controls.lock(); }
-    function onStartNoLock(e){ e.preventDefault(); e.stopPropagation(); overlay.style.display = 'none'; }
 
-    playBtn.addEventListener('click', onPlayClick);
-    startNoLockBtn.addEventListener('click', onStartNoLock);
-    renderer.domElement.addEventListener('click', () => { if (!controls.isLocked) controls.lock(); });
-    document.addEventListener('pointerlockerror', () => { showMsg('Pointer Lock failed. Open in a normal Chrome/Edge tab (Live Server), then click Play again.'); });
-    document.addEventListener('pointerlockchange', () => {
-      if (document.pointerLockElement === renderer.domElement) overlay.style.display = 'none'; else if (!embedded) overlay.style.display = '';
-    });
-
-    // --- lighting ---
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x445566, 0.9); scene.add(hemi);
-    const sun  = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(5,10,-2); scene.add(sun);
-
-    // --- collision helpers ---
-    const staticBoxes=[];                 // AABBs for static world
-    const tmpV=new THREE.Vector3();
-    const PLAYER_RADIUS=0.45;
-
-    function addStaticCollidable(obj){
-      staticBoxes.push(new THREE.Box3().setFromObject(obj));
+    function roundCoord(value) {
+      return Number.parseFloat(value).toFixed(4);
     }
-    // dynamic collision shapes (NPCs & dogs) as simple spheres
-    const dynamicSpheres=[];  // { pos: THREE.Vector3, r: number }
 
-    function collidesWithStatic(pos){
-      for (let i=0;i<staticBoxes.length;i++){
-        const clamped = staticBoxes[i].clampPoint(pos, tmpV);
-        if (clamped.distanceTo(pos) < PLAYER_RADIUS) return true;
+    function formatDateTime(value) {
+      if (!value) {
+        return "time unavailable";
       }
-      return false;
+
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      }).format(new Date(value));
     }
-    function collidesWithDynamics(pos){
-      for (let i=0;i<dynamicSpheres.length;i++){
-        if (dynamicSpheres[i].pos.distanceTo(pos) < (PLAYER_RADIUS + dynamicSpheres[i].r)) return true;
+
+    function severityClass(severity) {
+      return String(severity || "unknown").toLowerCase();
+    }
+
+    function spcTimestamp(value) {
+      if (!value) {
+        return "time unavailable";
       }
-      return false;
-    }
 
-    // --- ground / road / sidewalks ---
-    const makeRect=(w,h,color)=>{
-      const g=new THREE.PlaneGeometry(w,h);
-      const m=new THREE.MeshPhongMaterial({color,side:THREE.DoubleSide});
-      const p=new THREE.Mesh(g,m);
-      p.rotation.x=-Math.PI/2; p.receiveShadow=true; return p;
-    };
-    const ground=makeRect(400,400,0x7fbf7f); scene.add(ground);
-    const road=makeRect(12,380,0x222222); road.position.set(0,0.01,-10); scene.add(road);
-    for(let i=0;i<40;i++){
-      const line=makeRect(1.2,0.3,0xeeeeee);
-      line.position.set(0,0.02,-190+i*9.5-10); scene.add(line);
-    }
-    function addCrosswalk(z){
-      for(let i=0;i<10;i++){
-        const stripe = makeRect(0.8,0.25,0xffffff);
-        stripe.position.set(-3.6 + i*0.8, 0.021, z);
-        scene.add(stripe);
+      const raw = String(value);
+      if (!/^\d{12}$/.test(raw)) {
+        return raw;
       }
+
+      const year = raw.slice(0, 4);
+      const month = raw.slice(4, 6);
+      const day = raw.slice(6, 8);
+      const hour = raw.slice(8, 10);
+      const minute = raw.slice(10, 12);
+      return formatDateTime(`${year}-${month}-${day}T${hour}:${minute}:00Z`);
     }
-    addCrosswalk(-60); addCrosswalk(-180);
 
-    const leftWalk=makeRect(6,380,0xbdbdbd); leftWalk.position.set(-9,0.015,-10); scene.add(leftWalk);
-    const rightWalk=makeRect(6,380,0xbdbdbd); rightWalk.position.set( 9,0.015,-10); scene.add(rightWalk);
+    function stormSignalsFromText(text) {
+      const normalized = text.toLowerCase();
+      const signals = [
+        { label: "Thunderstorms", pattern: /thunderstorm|storms?/ },
+        { label: "Severe wording", pattern: /severe|damaging|destructive/ },
+        { label: "Tornado wording", pattern: /tornado|tornadic/ },
+        { label: "Hail", pattern: /hail/ },
+        { label: "Strong wind", pattern: /wind gust|damaging wind|strong wind|gusts? as high as/ },
+        { label: "Heavy rain", pattern: /heavy rain|flash flood|flooding|excessive rainfall/ }
+      ];
 
-    const curbGeom=new THREE.BoxGeometry(0.2,0.25,380), curbMat=new THREE.MeshPhongMaterial({color:0x9a9a9a});
-    const curbL=new THREE.Mesh(curbGeom,curbMat); curbL.position.set(-6,0.125,-10); scene.add(curbL);
-    const curbR=new THREE.Mesh(curbGeom,curbMat); curbR.position.set( 6,0.125,-10); scene.add(curbR);
-    addStaticCollidable(curbL); addStaticCollidable(curbR);
+      return signals.filter((signal) => signal.pattern.test(normalized)).map((signal) => signal.label);
+    }
 
-    // --- buildings (w/ windows that glow at night) ---
-    const buildMat=new THREE.MeshPhongMaterial({color:0x888ca0,flatShading:true});
-    const rng=(a,b)=>a+Math.random()*(b-a);
-    const windowMats=[];
+    function classifyForecastRisk(hazards) {
+      if (hazards.includes("Tornado wording") || hazards.includes("Severe wording")) {
+        return {
+          label: "Elevated",
+          className: "elevated",
+          detail: "The official forecast contains severe-storm language. Active alerts still carry the highest urgency."
+        };
+      }
 
-    function makeBuilding(x,z){
-      const w=rng(2.4,4.2), d=rng(3,5.5), h=rng(6,20);
-      const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), buildMat.clone());
-      b.material.color = new THREE.Color().setHSL(rng(0.55,0.65), rng(0.15,0.3), rng(0.45,0.6));
-      b.position.set(x,h/2,z); b.castShadow=b.receiveShadow=true;
+      if (hazards.includes("Thunderstorms") && (hazards.includes("Hail") || hazards.includes("Strong wind") || hazards.includes("Heavy rain"))) {
+        return {
+          label: "General to Elevated",
+          className: "general",
+          detail: "Thunderstorms are mentioned with at least one additional hazard signal."
+        };
+      }
 
-      const group = new THREE.Group(); group.add(b);
-      const face = (x<0)? +1 : -1; // which side faces the street
-      const cols = Math.max(2, Math.floor(w*1.2));
-      const rows = Math.max(2, Math.floor(h/3));
-      const winW = (w*0.6)/cols, winH = 0.35;
-      for(let r=0;r<rows;r++){
-        for(let c=0;c<cols;c++){
-          const m = new THREE.MeshStandardMaterial({ color:0x99aacc, emissive:0x000000, roughness:0.4 });
-          const g = new THREE.PlaneGeometry(winW*0.8, winH);
-          const tile = new THREE.Mesh(g, m);
-          tile.position.set(
-            b.position.x + face*(w/2 + 0.01),
-            (b.position.y - h/2 + 0.6) + r*(h/(rows+1)),
-            b.position.z - d/2 + (c+1)*(d/(cols+1))
-          );
-          tile.rotation.y = (face>0)? Math.PI/2 : -Math.PI/2;
-          windowMats.push(m);
-          group.add(tile);
+      if (hazards.includes("Thunderstorms")) {
+        return {
+          label: "General",
+          className: "general",
+          detail: "Thunderstorms are mentioned in the near-term NWS forecast."
+        };
+      }
+
+      return {
+        label: "Low",
+        className: "low",
+        detail: "No explicit storm wording appears in the current NWS forecast period."
+      };
+    }
+
+    async function fetchJson(url) {
+      const started = performance.now();
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/geo+json, application/json"
         }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
       }
-      scene.add(group);
-      addStaticCollidable(group);
-    }
-    for (let i=0;i<22;i++){ makeBuilding(-12.5,-20 - i*14); makeBuilding(12.5,-26 - i*14); }
 
-    // --- lamps (night lighting) ---
-    const lampMat = new THREE.MeshStandardMaterial({ color:0x333333, metalness:.7, roughness:.4 });
-    const lampHeadMat = new THREE.MeshStandardMaterial({ color:0xffffcc, emissive:0x000000, emissiveIntensity:0.0 });
-    const lamps=[];
-    for(let i=0;i<16;i++){
-      const z=-20 - i*22;
-      const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,3.2,12), lampMat); pole.position.set(-4.5,1.6,z); scene.add(pole);
-      const arm =new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.8),  lampMat); arm.position.set(-4.2,3.0,z+0.4); arm.rotation.y=Math.PI*0.35; scene.add(arm);
-      const head=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,12),    lampHeadMat); head.position.set(-3.8,3.05,z+0.8); scene.add(head);
-      const bulb=new THREE.PointLight(0xffffcc,0.0,9,2.0); bulb.position.copy(head.position); scene.add(bulb);
-      lamps.push({ head, bulb });
+      const data = await response.json();
+      console.debug(`Fetched ${url} in ${Math.round(performance.now() - started)}ms`);
+      return data;
     }
 
-    // --- a few props (benches, trees, mailboxes, cars) — trimmed for brevity ---
-    function makeRoundedBox(w,h,d,r=0.08){
-      return new THREE.Mesh(new RoundedBoxGeometry(w,h,d, 3, r), new THREE.MeshStandardMaterial({ color:0xb7b7b7, metalness:0.2, roughness:0.6 }));
-    }
-    function addBench(x,z){
-      const g = new THREE.Group();
-      const seat = makeRoundedBox(1.2, 0.08, 0.4, 0.06); seat.position.set(0, 0.5, 0); g.add(seat);
-      const back = makeRoundedBox(1.2, 0.4, 0.08, 0.06); back.position.set(0, 0.8, -0.16); g.add(back);
-      const leg = (dx)=>{ const l=makeRoundedBox(0.08,0.5,0.08,0.04); l.position.set(dx,0.25,0.15); return l; };
-      g.add(leg(-0.5), leg(0.5), leg(-0.5).clone(), leg(0.5).clone());
-      g.children[0].material.color.setHSL(0.07, 0.6, 0.35);
-      g.children[1].material.color.setHSL(0.07, 0.6, 0.35);
-      g.position.set(x, 0.04, z); scene.add(g); addStaticCollidable(g);
-    }
-    function addTree(x,z){
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.16, 1.6, 8), new THREE.MeshStandardMaterial({ color:0x6e4c3a, roughness:0.9 }));
-      trunk.position.set(x, 0.8, z);
-      const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 1), new THREE.MeshStandardMaterial({ color:0x3b6b3b, roughness:0.8 }));
-      crown.position.set(x, 1.7, z);
-      const g = new THREE.Group(); g.add(trunk, crown); scene.add(g); addStaticCollidable(g);
-    }
-    function addCar(x,z,dir=1){
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(new RoundedBoxGeometry(1.8,0.5,0.9, 3, 0.08), new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(rng(0,1),0.55,0.45), metalness:0.3, roughness:0.6 }));
-      body.position.set(0,0.35,0);
-      const top  = new THREE.Mesh(new RoundedBoxGeometry(1.0,0.35,0.8, 3, 0.1), new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness:0.1, roughness:0.9 }));
-      top.position.set(0,0.65,0);
-      function wheel(x,z){ const w=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.18,16), new THREE.MeshStandardMaterial({ color:0x222222 })); w.rotation.z=Math.PI/2; w.position.set(x,0.22,z); return w; }
-      g.add(body, top, wheel(-0.7,0.35), wheel(0.7,0.35), wheel(-0.7,-0.35), wheel(0.7,-0.35));
-      g.position.set(x, 0.0, z); g.rotation.y = (dir>0)? 0 : Math.PI; scene.add(g); addStaticCollidable(g);
-    }
-    for (let i=0;i<6;i++){
-      const z=-30 - i*40;
-      addBench(-8.2, z); addTree(-10.8, z-6);
-      addBench( 8.2, z-12); addTree( 10.8, z+6);
-    }
-    addCar(-4.2, -50, 1); addCar(-4.2, -95, 1); addCar(4.2, -70, -1); addCar(4.2, -140, -1);
+    async function fetchActiveAlerts(latitude, longitude) {
+      const alertData = await fetchJson(`https://api.weather.gov/alerts/active?point=${latitude},${longitude}`);
+      return (alertData.features || []).map((feature) => {
+        const props = feature.properties || {};
 
-    // --- NPCs walking dogs ---
-    const npcs=[]; // {human, dog, leash, dir(±1), laneX, speed, phase, humanSphere, dogSphere}
-
-    function makeHuman(color=0xdddddd){
-      const g = new THREE.Group();
-      // torso + head + simple limbs
-      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.6, 6, 12), new THREE.MeshStandardMaterial({ color, roughness:0.8 }));
-      torso.position.set(0, 1.1, 0);
-      const head  = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshStandardMaterial({ color:0xffe0bd, roughness:0.9 }));
-      head.position.set(0, 1.55, 0);
-      const armR  = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.4,12), new THREE.MeshStandardMaterial({ color:0xcccccc }));
-      armR.position.set(0.22, 1.2, 0.05); armR.rotation.z = -0.8;
-      g.add(torso, head, armR);
-      return { group:g, hand: armR };
-    }
-    function makeDog(color=0x996633){
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(new RoundedBoxGeometry(0.6,0.22,0.28,3,0.06), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
-      body.position.set(0, 0.28, 0);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.12,16,12), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
-      head.position.set(0.28, 0.34, 0.0);
-      const leg = (x,z)=>{ const l=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.22,10), new THREE.MeshStandardMaterial({ color:0x444444 })); l.position.set(x,0.11,z); return l; };
-      g.add(body, head, leg(-0.18, 0.09), leg(0.18, 0.09), leg(-0.18,-0.09), leg(0.18,-0.09));
-      return g;
-    }
-    function makeLeash(){
-      const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-      const mat = new THREE.LineBasicMaterial({ color:0x222222 });
-      return new THREE.Line(geo, mat);
+        return {
+          event: props.event || "Weather alert",
+          severity: props.severity || "Unknown",
+          urgency: props.urgency || "Unknown",
+          certainty: props.certainty || "Unknown",
+          headline: props.headline || "",
+          description: props.description || "",
+          instruction: props.instruction || "",
+          effective: props.effective,
+          expires: props.expires
+        };
+      });
     }
 
-    function addWalker(laneX, startZ, dir=1, speed=1.2, hue=0.55){
-      const human = makeHuman(new THREE.Color().setHSL(hue, 0.25, 0.75));
-      const dog   = makeDog(new THREE.Color().setHSL(hue+0.1, 0.4, 0.45));
-      const leash = makeLeash();
-
-      const group = new THREE.Group();
-      group.add(human.group, dog, leash);
-      scene.add(group);
-
-      // initial placement
-      human.group.position.set(laneX, 0, startZ);
-      dog.position.set(laneX + (laneX<0? 0.6 : -0.6), 0, startZ - 0.8*dir);
-
-      // dynamic collision spheres (centers updated per frame)
-      const humanSphere = { pos: human.group.position.clone(), r: 0.45 };
-      const dogSphere   = { pos: dog.position.clone(), r: 0.35 };
-      dynamicSpheres.push(humanSphere, dogSphere);
-
-      const npc = { human, dog, leash, dir, laneX, speed, phase: Math.random()*Math.PI*2, humanSphere, dogSphere };
-      npcs.push(npc);
-    }
-
-    // Spawn walkers on both sidewalks
-    const MIN_Z = -200, MAX_Z = 30;  // loop range
-    for (let i=0;i<6;i++){
-      addWalker(-9.0, -20 - i*30, -1, rng(0.9,1.5), 0.5 + i*0.05); // left sidewalk, going -Z
-      addWalker( 9.0, -40 - i*34, +1, rng(0.9,1.5), 0.65 + i*0.05); // right sidewalk, going +Z
-    }
-
-    function updateNPCs(dt, t){
-      for (const n of npcs){
-        // Human walk forward with a little bob
-        const h = n.human.group.position;
-        h.z += n.speed * n.dir * dt * 2.0;
-        n.human.group.position.y = 0.02 + 0.03*Math.sin(t*6 + n.phase);
-
-        // Loop at ends
-        if (n.dir<0 && h.z < MIN_Z) h.z = MAX_Z;
-        if (n.dir>0 && h.z > MAX_Z) h.z = MIN_Z;
-
-        // Dog follows slightly behind and to the curb side with a small wander
-        const side = (n.laneX<0)? +1 : -1; // curb side offset
-        const target = new THREE.Vector3(
-          n.laneX + side*0.7 + 0.12*Math.sin(t*2 + n.phase),
-          0,
-          h.z - 0.9*n.dir + 0.25*Math.sin(t*1.5 + n.phase*1.3)
-        );
-        n.dog.position.lerp(target, 1 - Math.exp(-6*dt)); // smooth follow
-
-        // Aim human slightly toward movement
-        n.human.group.rotation.y = (n.dir>0)? 0 : Math.PI;
-
-        // Update leash (hand → dog)
-        const handWorld = new THREE.Vector3();
-        n.human.hand.getWorldPosition(handWorld);
-        const pts = n.leash.geometry.attributes.position.array;
-        pts[0]=handWorld.x; pts[1]=handWorld.y; pts[2]=handWorld.z;
-        pts[3]=n.dog.position.x; pts[4]=n.dog.position.y+0.30; pts[5]=n.dog.position.z;
-        n.leash.geometry.attributes.position.needsUpdate = true;
-
-        // Update dynamic collision spheres
-        n.humanSphere.pos.copy(n.human.group.position).y = 1.0; // approx center
-        n.dogSphere.pos.copy(n.dog.position).y = 0.25;
+    async function fetchForecastSummary(forecastUrl) {
+      if (!forecastUrl) {
+        throw new Error("The NWS point lookup did not return a forecast URL.");
       }
+
+      const forecastData = await fetchJson(forecastUrl);
+      const periods = forecastData.properties && forecastData.properties.periods;
+      const currentPeriod = periods && periods[0];
+
+      if (!currentPeriod) {
+        throw new Error("The NWS forecast did not include forecast periods.");
+      }
+
+      const forecastText = `${currentPeriod.shortForecast || ""} ${currentPeriod.detailedForecast || ""}`;
+      const hazards = stormSignalsFromText(forecastText);
+      const risk = classifyForecastRisk(hazards);
+
+      return {
+        periodName: currentPeriod.name || "Current period",
+        shortForecast: currentPeriod.shortForecast || "Forecast unavailable",
+        detailedForecast: currentPeriod.detailedForecast || "",
+        sourceUrl: forecastUrl,
+        hazards,
+        risk
+      };
     }
 
-    // --- night toggle (lamps + window glow) ---
-    let isNight=false;
-    function toggleNight(){
-      isNight=!isNight;
-      if(isNight){
-        scene.background.set(0x0b1022); scene.fog.color.set(0x0b1022); hemi.intensity=0.2; sun.intensity=0.15;
-        lamps.forEach(l=>{ l.head.material.emissive= new THREE.Color(0xffffcc); l.head.material.emissiveIntensity=1.8; l.bulb.intensity=1.8; });
-        windowMats.forEach(w=>{ w.emissive = new THREE.Color(0xffeeaa); w.emissiveIntensity = 0.9; });
+    async function fetchSpcDayOneOutlook(latitude, longitude) {
+      const url = new URL("https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/SPC_wx_outlks/MapServer/1/query");
+      url.searchParams.set("f", "geojson");
+      url.searchParams.set("where", "1=1");
+      url.searchParams.set("geometry", `${longitude},${latitude}`);
+      url.searchParams.set("geometryType", "esriGeometryPoint");
+      url.searchParams.set("inSR", "4326");
+      url.searchParams.set("spatialRel", "esriSpatialRelIntersects");
+      url.searchParams.set("outFields", "*");
+
+      const outlookData = await fetchJson(url.toString());
+      const features = outlookData.features || [];
+
+      if (!features.length) {
+        return {
+          label: "NONE",
+          label2: "No categorical risk at this point",
+          issue: null,
+          valid: null,
+          expire: null
+        };
+      }
+
+      const selected = features
+        .map((feature) => feature.properties || {})
+        .sort((a, b) => Number(b.dn || 0) - Number(a.dn || 0))[0];
+
+      return {
+        label: selected.label || "OUTLOOK",
+        label2: selected.label2 || "SPC outlook area",
+        issue: selected.issue,
+        valid: selected.valid,
+        expire: selected.expire
+      };
+    }
+
+    function renderAlerts(alerts) {
+      alertListEl.innerHTML = "";
+      alertCountEl.textContent = alerts.length === 1 ? "1 active" : `${alerts.length} active`;
+
+      if (!alerts.length) {
+        const item = document.createElement("li");
+        item.className = "alert-item";
+        const title = document.createElement("div");
+        title.className = "alert-title";
+        title.textContent = "No active NWS alerts for this point";
+        const meta = document.createElement("p");
+        meta.className = "alert-meta";
+        meta.textContent = "This does not rule out storms later. The next layer will add forecast outlook risk.";
+        item.append(title, meta);
+        alertListEl.append(item);
+        return;
+      }
+
+      alerts.forEach((alert) => {
+        const item = document.createElement("li");
+        item.className = "alert-item";
+
+        const summary = alert.headline || alert.description || "No detailed description was provided.";
+        const title = document.createElement("div");
+        title.className = "alert-title";
+
+        const event = document.createElement("span");
+        event.textContent = alert.event;
+
+        const severity = document.createElement("span");
+        severity.className = `severity ${severityClass(alert.severity)}`;
+        severity.textContent = alert.severity;
+
+        const meta = document.createElement("p");
+        meta.className = "alert-meta";
+        meta.textContent = `${alert.urgency} urgency, ${alert.certainty} certainty. Effective ${formatDateTime(alert.effective)}. Expires ${formatDateTime(alert.expires)}.`;
+
+        const desc = document.createElement("p");
+        desc.className = "alert-desc";
+        desc.textContent = summary;
+
+        title.append(event, severity);
+        item.append(title, meta, desc);
+        alertListEl.append(item);
+      });
+    }
+
+    function renderForecast(forecast) {
+      riskValueEl.textContent = forecast.risk.label;
+      riskValueEl.className = `risk-value ${forecast.risk.className}`;
+      riskDetailEl.textContent = forecast.risk.detail;
+      periodDetailEl.textContent = `${forecast.periodName}: ${forecast.shortForecast}. ${forecast.detailedForecast}`;
+      forecastSourceEl.href = forecast.sourceUrl;
+      forecastSourceEl.textContent = forecast.sourceUrl;
+      hazardsEl.innerHTML = "";
+
+      const hazards = forecast.hazards.length ? forecast.hazards : ["No storm wording"];
+      hazards.forEach((hazard) => {
+        const chip = document.createElement("span");
+        chip.className = "hazard";
+        chip.textContent = hazard;
+        hazardsEl.append(chip);
+      });
+    }
+
+    function renderOutlook(outlook) {
+      outlookLabelEl.textContent = outlook.label;
+      outlookLabelEl.className = `outlook-label ${String(outlook.label || "none").toLowerCase()}`;
+      outlookNameEl.textContent = outlook.label2;
+
+      if (outlook.valid || outlook.expire || outlook.issue) {
+        outlookDetailEl.textContent = `Issued ${spcTimestamp(outlook.issue)}. Valid ${spcTimestamp(outlook.valid)} through ${spcTimestamp(outlook.expire)}.`;
       } else {
-        scene.background.set(0x87CEEB); scene.fog.color.set(0x87CEEB); hemi.intensity=0.9; sun.intensity=0.8;
-        lamps.forEach(l=>{ l.head.material.emissiveIntensity=0.0; l.bulb.intensity=0.0; });
-        windowMats.forEach(w=>{ w.emissiveIntensity = 0.0; });
+        outlookDetailEl.textContent = "The point is not inside a current SPC Day 1 categorical risk polygon.";
       }
     }
 
-    // --- input / movement ---
-    const keys={w:false,a:false,s:false,d:false,shift:false};
-    addEventListener('keydown', e=>{
-      if (e.code==='KeyW') keys.w=true;
-      if (e.code==='KeyA') keys.a=true;
-      if (e.code==='KeyS') keys.s=true;
-      if (e.code==='KeyD') keys.d=true;
-      if (e.code==='ShiftLeft') keys.shift=true;
-      if (e.code==='KeyN') toggleNight();
-    });
-    addEventListener('keyup', e=>{
-      if (e.code==='KeyW') keys.w=false;
-      if (e.code==='KeyA') keys.a=false;
-      if (e.code==='KeyS') keys.s=false;
-      if (e.code==='KeyD') keys.d=false;
-      if (e.code==='ShiftLeft') keys.shift=false;
-    });
+    async function resolveZip(zip) {
+      const cached = cache.get(zip);
 
-    const velocity=new THREE.Vector3(), dir=new THREE.Vector3();
-    let last=performance.now();
-
-    function step(dt){
-      const accel=(keys.shift?24:12);
-      dir.set(0,0,0);
-      if(keys.w) dir.z-=1; if(keys.s) dir.z+=1; if(keys.a) dir.x-=1; if(keys.d) dir.x+=1;
-      if(dir.lengthSq()>0) dir.normalize();
-
-      const forward=new THREE.Vector3(); controls.getDirection(forward); forward.y=0; forward.normalize();
-      const right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,1,0)).multiplyScalar(-1);
-      const wish=new THREE.Vector3().addScaledVector(forward,dir.z).addScaledVector(right,dir.x).normalize();
-      if(wish.lengthSq()>0) velocity.addScaledVector(wish, accel*dt);
-      velocity.multiplyScalar(Math.exp(-6*dt)); // friction
-
-      const obj=controls.getObject(); const old=obj.position.clone();
-      obj.position.addScaledVector(velocity, dt); obj.position.y=1.7;
-
-      // collisions: static then dynamic (NPCs & dogs)
-      if (collidesWithStatic(obj.position) || collidesWithDynamics(obj.position)) {
-        obj.position.copy(old);
-        obj.position.x += velocity.x*dt; if (collidesWithStatic(obj.position) || collidesWithDynamics(obj.position)) obj.position.x = old.x;
-        obj.position.z  = old.z + velocity.z*dt; if (collidesWithStatic(obj.position) || collidesWithDynamics(obj.position)) obj.position.z = old.z;
+      if (cached && Date.now() - cached.savedAt < RISK_CACHE_MS) {
+        return {
+          ...cached.location,
+          fromCache: true
+        };
       }
+
+      const zipData = await fetchJson(`https://api.zippopotam.us/us/${zip}`);
+      const firstPlace = zipData.places && zipData.places[0];
+
+      if (!firstPlace) {
+        throw new Error("No matching location was found for that ZIP code.");
+      }
+
+      const latitude = Number(firstPlace.latitude);
+      const longitude = Number(firstPlace.longitude);
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        throw new Error("The ZIP lookup did not return usable coordinates.");
+      }
+
+      const nwsPoint = await fetchJson(`https://api.weather.gov/points/${latitude},${longitude}`);
+      const props = nwsPoint.properties || {};
+      const [forecast, outlook, alerts] = await Promise.all([
+        fetchForecastSummary(props.forecast),
+        fetchSpcDayOneOutlook(latitude, longitude),
+        fetchActiveAlerts(latitude, longitude)
+      ]);
+
+      const location = {
+        city: firstPlace["place name"],
+        state: firstPlace["state abbreviation"],
+        latitude,
+        longitude,
+        office: props.cwa || "Unavailable",
+        gridId: props.gridId || "Unavailable",
+        gridX: props.gridX,
+        gridY: props.gridY,
+        forecast,
+        outlook,
+        alerts
+      };
+
+      cache.set(zip, {
+        savedAt: Date.now(),
+        location
+      });
+
+      return location;
     }
 
-    function animate(){
-      requestAnimationFrame(animate);
-      const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now;
-      const t = now/1000;
-      if (controls.isLocked) step(dt);
-      updateNPCs(dt, t);
-      renderer.render(scene,camera);
-    }
-    animate();
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
 
-    window.addEventListener('resize', ()=>{
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      const zip = zipInput.value.trim();
+      resultEl.classList.remove("visible");
+
+      if (!/^\d{5}$/.test(zip)) {
+        setStatus("Enter a valid 5-digit U.S. ZIP code.", true);
+        return;
+      }
+
+      submitButton.disabled = true;
+      setStatus("Resolving ZIP code, checking the NWS forecast, SPC outlook, and active alerts...");
+
+      try {
+        const location = await resolveZip(zip);
+        placeEl.textContent = `${location.city}, ${location.state} ${zip}`;
+        coordsEl.textContent = `${roundCoord(location.latitude)}, ${roundCoord(location.longitude)}`;
+        officeEl.textContent = location.office;
+        gridEl.textContent = `${location.gridId}/${location.gridX},${location.gridY}`;
+        renderForecast(location.forecast);
+        renderOutlook(location.outlook);
+        renderAlerts(location.alerts);
+        resultEl.classList.add("visible");
+        setStatus(location.fromCache ? "Loaded this ZIP from a recent check." : "Forecast signals, SPC outlook, and active alerts are ready.");
+      } catch (error) {
+        setStatus(error.message || "Could not resolve that ZIP code right now.", true);
+      } finally {
+        submitButton.disabled = false;
+      }
     });
   </script>
 </body>
